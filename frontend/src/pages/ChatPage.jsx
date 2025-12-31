@@ -19,6 +19,8 @@ export default function ChatPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [rating, setRating] = useState(5);
+    const [showLinkInput, setShowLinkInput] = useState(false);
+    const [tempLink, setTempLink] = useState("");
 
     // Fetch initial data
     useEffect(() => {
@@ -33,11 +35,10 @@ export default function ChatPage() {
         socket.emit("join_room", user.id); // Join own room
 
         socket.on("receive_message", (data) => {
-            if (selectedChat && (data.sender === selectedChat.partner._id || data.sender === user.id)) {
+            if (selectedChat && (data.sender === selectedChat.partner._id || data.sender === user._id)) {
                 setMessages((prev) => {
                     // Deduplicate
                     if (prev.some(m => m._id === data._id)) return prev;
-                    if (prev.some(m => m.timestamp === data.timestamp && m.content === data.content && m.sender === data.sender)) return prev;
                     return [...prev, data];
                 });
                 scrollToBottom();
@@ -106,7 +107,7 @@ export default function ChatPage() {
         if (!newMessage.trim() || !selectedChat) return;
 
         const messageData = {
-            sender: user.id,
+            sender: user._id,
             recipient: selectedChat.partner._id,
             content: newMessage,
             timestamp: new Date()
@@ -142,10 +143,16 @@ export default function ChatPage() {
         }
     };
 
-    const handleGoogleMeet = async () => {
+    const handleVideoCall = async () => {
+        if (!selectedChat) return;
+
+        // request/revert: User specifically asked for Google Meet
         window.open('https://meet.google.com/new', '_blank');
 
-        // Call backend to persist session start
+        // Show the helper modal for the user to paste the link
+        setShowLinkInput(true);
+
+        // Call backend to persist session start (for payment button visibility)
         if (selectedChat?.requestId) {
             try {
                 await axios.post('http://localhost:5000/chat/start-session',
@@ -158,6 +165,22 @@ export default function ChatPage() {
                 console.error("Failed to start session:", err);
             }
         }
+    };
+
+    const submitMeetingLink = (e) => {
+        e.preventDefault();
+        if (!tempLink.trim()) return;
+
+        const messageData = {
+            sender: user._id,
+            recipient: selectedChat.partner._id,
+            content: `🎥 I started a Google Meet video call! Join here: ${tempLink}`,
+            timestamp: new Date()
+        };
+        socket.emit("send_message", messageData);
+        setMessages(prev => [...prev, messageData]);
+        setShowLinkInput(false);
+        setTempLink("");
     };
 
     const handleFileUpload = () => {
@@ -211,58 +234,52 @@ export default function ChatPage() {
 
                 <div className="flex-1 overflow-y-auto">
                     {activeTab === 'inbox' ? (
-                        <div className="flex flex-col">
+                        <div className="space-y-1">
                             {conversations.map((chat) => (
-                                <button
+                                <div
                                     key={chat.requestId}
                                     onClick={() => setSelectedChat(chat)}
-                                    className={`p-4 flex items-center gap-3 border-b border-gray-800/50 hover:bg-gray-800/50 transition-colors text-left ${selectedChat?.requestId === chat.requestId ? 'bg-gray-800 border-l-2 border-l-blue-500' : ''}`}
+                                    className={`p-3 rounded-xl cursor-pointer flex items-center gap-3 transition-all duration-200 ${selectedChat?.requestId === chat.requestId ? "bg-white/10" : "hover:bg-white/5"
+                                        }`}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold text-sm">
-                                        {chat.partner.username?.[0].toUpperCase() || "U"}
+                                    <div className="relative">
+                                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold text-white shadow-lg">
+                                            {chat.partner.username?.[0].toUpperCase() || "U"}
+                                        </div>
+                                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></div>
                                     </div>
-                                    <div className="flex-1 overflow-hidden">
-                                        <h3 className="font-medium truncate">{chat.partner.username || "User"}</h3>
-                                        <p className="text-sm text-gray-500 truncate">Click to chat</p>
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-white truncate">{chat.partner.username || "User"}</h3>
+                                        <p className="text-xs text-gray-400 truncate">Click to chat</p>
                                     </div>
-                                </button>
+                                </div>
                             ))}
-                            {conversations.length === 0 && <div className="p-8 text-center text-gray-500">No conversations yet</div>}
+                            {conversations.length === 0 && <div className="text-center text-gray-500 py-8 text-sm">No active chats</div>}
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-4 p-4">
-                            {requests.map((req) => (
-                                <div key={req._id} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center font-bold text-sm">
-                                            {req.sender.username?.[0].toUpperCase() || "U"}
+                        <div className="space-y-1">
+                            {requests.map((request) => (
+                                <div key={request.requestId} className="p-3 bg-gray-900/50 rounded-xl border border-gray-800 flex items-center justify-between hover:bg-gray-800 transition-colors group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-500 to-orange-500 flex items-center justify-center font-bold text-black shadow-lg">
+                                            {request.sender.username[0].toUpperCase()}
                                         </div>
                                         <div>
-                                            <h3 className="font-medium">{req.sender.username || "User"}</h3>
-                                            <p className="text-xs text-gray-400">Wants to connect</p>
+                                            <h3 className="font-semibold text-white text-sm">{request.sender.username}</h3>
+                                            <p className="text-xs text-gray-400">Sent a request</p>
                                         </div>
                                     </div>
-                                    {req.note && <p className="text-sm text-gray-300 mb-3 bg-gray-900/50 p-2 rounded italic">"{req.note}"</p>}
-                                    <div className="text-xs text-gray-400 mb-3">
-                                        Scheduled: {new Date(req.scheduledTime).toLocaleString()}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => handleAcceptRequest(req._id)}
-                                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                                        >
-                                            <Check size={14} /> Accept
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => handleAcceptRequest(request.requestId)} className="p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition shadow-lg transition-transform hover:scale-105">
+                                            <Check size={14} />
                                         </button>
-                                        <button
-                                            onClick={() => handleRejectRequest(req._id)}
-                                            className="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
-                                        >
-                                            <X size={14} /> Decline
+                                        <button onClick={() => handleRejectRequest(request.requestId)} className="p-1.5 bg-gray-700 text-gray-300 rounded-full hover:bg-red-500 hover:text-white transition shadow-lg transition-transform hover:scale-105">
+                                            <X size={14} />
                                         </button>
                                     </div>
                                 </div>
                             ))}
-                            {requests.length === 0 && <div className="text-center text-gray-500 py-4">No pending requests</div>}
+                            {requests.length === 0 && <div className="text-center text-gray-500 py-8 text-sm">No pending requests</div>}
                         </div>
                     )}
                 </div>
@@ -295,7 +312,7 @@ export default function ChatPage() {
                                     </button>
                                 )}
                                 <button
-                                    onClick={handleGoogleMeet}
+                                    onClick={handleVideoCall}
                                     className="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors"
                                     title="Start Video Call (Google Meet)"
                                 >
@@ -305,57 +322,78 @@ export default function ChatPage() {
                         </div>
 
                         {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                            {messages.map((msg, idx) => {
-                                const isMe = msg.sender === user.id;
-                                return (
-                                    <div key={idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[70%] rounded-2xl p-4 ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-gray-800 text-gray-200 rounded-tl-none'}`}>
-                                            <p>{msg.content}</p>
-                                            <p className={`text-[10px] mt-1 ${isMe ? 'text-blue-200' : 'text-gray-400'} text-right`}>
-                                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
+                // MESSAGE LIST
+                        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
+                            {!isLoading ? (
+                                messages.map((msg, index) => {
+                                    const isMe = msg.sender === user._id; // Updated to _id
+                                    const showAvatar = !isMe && (index === 0 || messages[index - 1].sender !== msg.sender);
+
+                                    return (
+                                        <div key={index} className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
+                                            {!isMe && (
+                                                <div className={`w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-xs font-bold ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
+                                                    {selectedChat.partner.username?.[0].toUpperCase()}
+                                                </div>
+                                            )}
+                                            <div
+                                                className={`max-w-[70%] px-4 py-2.5 shadow-sm relative group text-sm ${isMe
+                                                    ? "bg-blue-600 text-white rounded-2xl rounded-tr-sm"
+                                                    : "bg-[#262626] text-white rounded-2xl rounded-tl-sm"
+                                                    }`}
+                                            >
+                                                <p className="leading-relaxed">{msg.content}</p>
+                                                <span className={`text-[10px] opacity-0 group-hover:opacity-60 transition-opacity absolute bottom-0 ${isMe ? '-left-12' : '-right-12'} translate-y-[-50%] text-gray-400 whitespace-nowrap`}>
+                                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            ) : (
+                                <div className="flex justify-center items-center h-full">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                                </div>
+                            )}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input */}
-                        <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-800 bg-gray-900/30">
-                            <div className="flex items-center gap-4 bg-gray-800/50 p-2 rounded-2xl border border-gray-700 focus-within:border-blue-500 transition-colors">
+                        {/* Input Area */}
+                        <div className="p-4 bg-black">
+                            <form onSubmit={handleSendMessage} className="flex items-center gap-3 relative">
                                 <button
                                     type="button"
                                     onClick={handleFileUpload}
-                                    className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
+                                    className="text-gray-400 hover:text-white transition p-2 hover:bg-gray-900 rounded-full"
+                                    title="Send File"
                                 >
-                                    <Paperclip size={20} />
+                                    <Paperclip size={22} />
                                 </button>
                                 <input
                                     type="text"
+                                    className="flex-1 bg-[#262626] text-white rounded-full px-5 py-3 focus:outline-none focus:ring-1 focus:ring-gray-700 placeholder-gray-500 transition-all"
+                                    placeholder="Message..."
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Type a message..."
-                                    className="flex-1 bg-transparent border-none focus:outline-none text-white placeholder-gray-500"
                                 />
-                                <button
-                                    type="submit"
-                                    disabled={!newMessage.trim()}
-                                    className="p-2 bg-blue-600 rounded-xl text-white hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-all"
-                                >
-                                    <Send size={20} />
-                                </button>
-                            </div>
-                        </form>
+                                {newMessage.trim() && (
+                                    <button
+                                        type="submit"
+                                        className="text-blue-500 font-semibold hover:text-blue-400 transition pr-2 text-sm"
+                                    >
+                                        Send
+                                    </button>
+                                )}
+                            </form>
+                        </div>
                     </>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8">
-                        <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                            <MessageSquare size={40} className="text-gray-600" />
+                    <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+                        <div className="w-24 h-24 rounded-full border-2 border-gray-800 flex items-center justify-center mb-4">
+                            <MessageSquare size={48} className="opacity-50" />
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">Your Messages</h3>
-                        <p className="max-w-md text-center">Select a conversation from the sidebar or accept a request to start chatting.</p>
+                        <h2 className="text-xl font-semibold text-white mb-2">Your Messages</h2>
+                        <p className="text-sm">Send private photos and messages to a friend or group.</p>
                     </div>
                 )}
             </div>
@@ -407,6 +445,60 @@ export default function ChatPage() {
                                     Confirm
                                 </button>
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Meet Link Input Modal */}
+            <AnimatePresence>
+                {showLinkInput && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-[#262626] border border-gray-700 p-6 rounded-2xl w-full max-w-md shadow-2xl relative"
+                        >
+                            <button
+                                onClick={() => setShowLinkInput(false)}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            <div className="flex flex-col items-center mb-6">
+                                <div className="w-12 h-12 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center mb-3">
+                                    <Video size={24} />
+                                </div>
+                                <h3 className="text-lg font-bold text-white">Paste Meeting Link</h3>
+                                <p className="text-gray-400 text-sm text-center mt-1">
+                                    Copy the link from the Google Meet tab and paste it here to send it instantly.
+                                </p>
+                            </div>
+
+                            <form onSubmit={submitMeetingLink} className="space-y-4">
+                                <input
+                                    type="text"
+                                    autoFocus
+                                    placeholder="Paste https://meet.google.com/..."
+                                    value={tempLink}
+                                    onChange={(e) => setTempLink(e.target.value)}
+                                    className="w-full bg-black/50 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!tempLink.trim()}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-900/20"
+                                >
+                                    Send Link
+                                </button>
+                            </form>
                         </motion.div>
                     </motion.div>
                 )}
