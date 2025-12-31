@@ -82,7 +82,7 @@ router.get("/conversations", auth, async (req, res) => {
         }).populate("sender recipient", "username email");
 
         // Format into a list of conversation partners
-        const conversations = requests.map(reqObj => {
+        const formattedConversations = requests.map(reqObj => {
             const partner = reqObj.sender._id.toString() === req.userId
                 ? reqObj.recipient
                 : reqObj.sender;
@@ -91,11 +91,12 @@ router.get("/conversations", auth, async (req, res) => {
                 partner,
                 requestId: reqObj._id,
                 isSender: reqObj.sender._id.toString() === req.userId,
-                isCompleted: reqObj.isCompleted
+                isCompleted: reqObj.isCompleted,
+                activeSessionInitiator: reqObj.activeSessionInitiator
             };
         });
 
-        res.json(conversations);
+        res.json(formattedConversations);
     } catch (err) {
         res.status(500).json({ message: "Server error" });
     }
@@ -128,6 +129,25 @@ router.get("/:userId", auth, async (req, res) => {
         res.json(messages);
     } catch (error) {
         res.status(500).json({ message: "Something went wrong" });
+    }
+});
+
+// Start a session (mark initiatior for persistent button)
+router.post("/start-session", auth, async (req, res) => {
+    try {
+        const { requestId } = req.body;
+        const request = await MessageRequest.findById(requestId);
+        if (!request) return res.status(404).json({ message: "Request not found" });
+
+        // Only allow update if no active session? Or overwrite? 
+        // Overwriting allows re-initiating.
+        request.activeSessionInitiator = req.userId;
+        await request.save();
+
+        res.json({ message: "Session started", activeSessionInitiator: req.userId });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server Error" });
     }
 });
 
@@ -170,6 +190,10 @@ router.post("/complete-session", auth, async (req, res) => {
             teacher.ratings.push({ star: rating, reviewer: payerId });
         }
         await teacher.save();
+
+        // Clear the active session initiator so button disappears
+        request.activeSessionInitiator = null;
+        await request.save();
 
         // request.isCompleted = true; // Allow multiple sessions
         // await request.save();

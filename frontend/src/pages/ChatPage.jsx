@@ -19,7 +19,6 @@ export default function ChatPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [rating, setRating] = useState(5);
-    const [hasClickedVideo, setHasClickedVideo] = useState(false);
 
     // Fetch initial data
     useEffect(() => {
@@ -55,7 +54,6 @@ export default function ChatPage() {
         if (selectedChat) {
             fetchMessages(selectedChat.partner._id);
             socket.emit("join_room", selectedChat.partner._id);
-            setHasClickedVideo(false); // Reset on chat switch
         }
     }, [selectedChat]);
 
@@ -69,6 +67,11 @@ export default function ChatPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setConversations(res.data);
+            // Sync selectedChat if it exists (to update activeSessionInitiator)
+            if (selectedChat) {
+                const updatedChat = res.data.find(c => c.requestId === selectedChat.requestId);
+                if (updatedChat) setSelectedChat(updatedChat);
+            }
             setIsLoading(false);
         } catch (err) {
             console.error(err);
@@ -139,10 +142,22 @@ export default function ChatPage() {
         }
     };
 
-    const handleGoogleMeet = () => {
+    const handleGoogleMeet = async () => {
         window.open('https://meet.google.com/new', '_blank');
-        // Always set to true to trigger UI check, correct visibility logic is in the render key
-        setHasClickedVideo(true);
+
+        // Call backend to persist session start
+        if (selectedChat?.requestId) {
+            try {
+                await axios.post('http://localhost:5000/chat/start-session',
+                    { requestId: selectedChat.requestId },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                // Refresh to get updated activeSessionInitiator status
+                fetchConversations();
+            } catch (err) {
+                console.error("Failed to start session:", err);
+            }
+        }
     };
 
     const handleFileUpload = () => {
@@ -159,7 +174,6 @@ export default function ChatPage() {
             );
             alert(`Session ended! ${res.data.message}`);
             setShowCompleteModal(false);
-            setHasClickedVideo(false); // Hide button after completion
             fetchConversations(); // Refresh data
             // Optionally refresh user credits logic here if we had user state updater
         } catch (error) {
@@ -272,7 +286,7 @@ export default function ChatPage() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-4">
-                                {hasClickedVideo && (
+                                {(selectedChat.activeSessionInitiator === user._id) && (
                                     <button
                                         onClick={() => setShowCompleteModal(true)}
                                         className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-1"
