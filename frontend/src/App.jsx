@@ -6,6 +6,7 @@ import Profile from "./pages/Profile";
 import LandingPage from "./pages/LandingPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import ChatPage from "./pages/ChatPage";
+import CommunityHub from "./pages/CommunityHub";
 import { AuthProvider } from "./context/AuthContext";
 import Layout from "./components/Layout";
 
@@ -28,6 +29,12 @@ export default function App() {
             <Route path="/chat" element={
               <ProtectedRoute>
                 <ChatPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/community" element={
+              <ProtectedRoute>
+                <CommunityHub />
               </ProtectedRoute>
             } />
 

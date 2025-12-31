@@ -2,7 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import SkillUser from "../SkillUser.js";
-import { embed } from "../gemini.js";
+import { embed, generateBio } from "../gemini.js";
 
 const router = express.Router();
 
@@ -22,6 +22,25 @@ router.post("/signup", async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 12);
 
+        // Calculate bio if not provided
+        if (!bio || bio.trim() === "") {
+            console.log("Bio is empty, attempting to generate one...");
+            try {
+                const generatedBio = await generateBio(skills || []);
+                console.log("Received generated bio in auth:", generatedBio);
+                if (generatedBio) {
+                    req.body.bio = generatedBio; // Update bio in request body or just use local var
+                }
+            } catch (error) {
+                console.error("Failed to generate bio:", error);
+            }
+        } else {
+            console.log("Bio provided:", bio);
+        }
+
+        // Use the potentially updated bio
+        const finalBio = req.body.bio || bio;
+
         // Generate embedding based on skills
         // We assume skills is an array of { name, type, level }
         let embedding = [];
@@ -37,7 +56,7 @@ router.post("/signup", async (req, res) => {
             username,
             email,
             password: hashedPassword,
-            bio,
+            bio: finalBio,
             skills,
             embedding,
             credits: 2 // Initial credits

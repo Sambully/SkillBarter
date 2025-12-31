@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, User, Network, MessageSquare, LogOut, Settings } from "lucide-react";
+import { LayoutDashboard, User, Network, MessageSquare, LogOut, Settings, Users } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 import clsx from "clsx";
@@ -71,6 +71,7 @@ export default function Sidebar() {
                 <SidebarItem icon={LayoutDashboard} label="Dashboard" path="/dashboard" isOpen={isOpen} />
                 <SidebarItem icon={User} label="Profile" path="/profile" isOpen={isOpen} />
                 <SidebarItem icon={MessageSquare} label="Chat" path="/chat" isOpen={isOpen} />
+                <SidebarItem icon={Users} label="Community Hub" path="/community" isOpen={isOpen} />
                 {/* Add chat or other links here if they were separate pages */}
             </div>
 
