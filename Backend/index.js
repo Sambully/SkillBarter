@@ -9,6 +9,7 @@ import sessionRoutes from "./routes/session.js";
 import creditRoutes from "./routes/credits.js";
 import chatRoutes from "./routes/chat.js";
 import communityRoutes from "./routes/community.js";
+import uploadRoutes from "./routes/upload.js";
 
 import Message from "./Message.js";
 import dotenv from "dotenv";
@@ -26,6 +27,7 @@ app.use("/match", matchRoutes);
 app.use("/credits", creditRoutes);
 app.use("/chat", chatRoutes);
 app.use("/community", communityRoutes);
+app.use("/upload", uploadRoutes);
 
 
 const server = http.createServer(app);

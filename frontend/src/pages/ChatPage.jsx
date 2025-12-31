@@ -182,9 +182,47 @@ export default function ChatPage() {
         setTempLink("");
     };
 
+    const fileInputRef = useRef(null);
+
     const handleFileUpload = () => {
-        // MVP: Just show an alert or trigger file input (dummy)
-        alert("File sharing feature coming soon!");
+        fileInputRef.current.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            // Upload to backend
+            const res = await axios.post("http://localhost:5000/upload", formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data"
+                }
+            });
+
+            const { fileUrl, fileType } = res.data;
+
+            // Send message with file
+            const messageData = {
+                sender: user._id,
+                recipient: selectedChat.partner._id,
+                content: fileType.startsWith('image/') ? '📷 Sent an image' : '📎 Sent a file',
+                fileUrl,
+                fileType,
+                timestamp: new Date()
+            };
+
+            socket.emit("send_message", messageData);
+            setMessages(prev => [...prev, messageData]);
+
+        } catch (err) {
+            console.error("File upload failed:", err);
+            alert(`Failed to upload file: ${err.response?.data?.message || err.message}`);
+        }
     };
 
     const handleCompleteSession = async () => {
@@ -258,7 +296,7 @@ export default function ChatPage() {
                     ) : (
                         <div className="space-y-1">
                             {requests.map((request) => (
-                                <div key={request.requestId} className="p-3 bg-gray-900/50 rounded-xl border border-gray-800 flex items-center justify-between hover:bg-gray-800 transition-colors group">
+                                <div key={request._id} className="p-3 bg-gray-900/50 rounded-xl border border-gray-800 flex items-center justify-between hover:bg-gray-800 transition-colors group">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-500 to-orange-500 flex items-center justify-center font-bold text-black shadow-lg">
                                             {request.sender.username[0].toUpperCase()}
@@ -269,10 +307,10 @@ export default function ChatPage() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => handleAcceptRequest(request.requestId)} className="p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition shadow-lg transition-transform hover:scale-105">
+                                        <button onClick={() => handleAcceptRequest(request._id)} className="p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition shadow-lg transition-transform hover:scale-105">
                                             <Check size={14} />
                                         </button>
-                                        <button onClick={() => handleRejectRequest(request.requestId)} className="p-1.5 bg-gray-700 text-gray-300 rounded-full hover:bg-red-500 hover:text-white transition shadow-lg transition-transform hover:scale-105">
+                                        <button onClick={() => handleRejectRequest(request._id)} className="p-1.5 bg-gray-700 text-gray-300 rounded-full hover:bg-red-500 hover:text-white transition shadow-lg transition-transform hover:scale-105">
                                             <X size={14} />
                                         </button>
                                     </div>
@@ -341,7 +379,25 @@ export default function ChatPage() {
                                                     : "bg-[#262626] text-white rounded-2xl rounded-tl-sm"
                                                     }`}
                                             >
-                                                <p className="leading-relaxed">{msg.content}</p>
+                                                {msg.fileUrl ? (
+                                                    msg.fileType?.startsWith("image/") ? (
+                                                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                            <img
+                                                                src={msg.fileUrl}
+                                                                alt="Shared content"
+                                                                className="max-w-full rounded-lg mb-1 cursor-zoom-in hover:brightness-90 transition"
+                                                                style={{ maxHeight: "200px" }}
+                                                            />
+                                                        </a>
+                                                    ) : (
+                                                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-black/20 p-2 rounded-lg hover:bg-black/30 transition">
+                                                            <File size={20} />
+                                                            <span className="underline truncate max-w-[150px]">Download File</span>
+                                                        </a>
+                                                    )
+                                                ) : (
+                                                    <p className="leading-relaxed">{msg.content}</p>
+                                                )}
                                                 <span className={`text-[10px] opacity-0 group-hover:opacity-60 transition-opacity absolute bottom-0 ${isMe ? '-left-12' : '-right-12'} translate-y-[-50%] text-gray-400 whitespace-nowrap`}>
                                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
@@ -383,6 +439,12 @@ export default function ChatPage() {
                                         Send
                                     </button>
                                 )}
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    onChange={handleFileChange}
+                                />
                             </form>
                         </div>
                     </>

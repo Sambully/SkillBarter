@@ -33,7 +33,7 @@ export default function CommunityHub() {
     const handlePostQuestion = async () => {
         if (!newQuestion.trim()) return;
         try {
-            await axios.post(`${API_URL}/create`, { userId: user.id, content: newQuestion });
+            await axios.post(`${API_URL}/create`, { userId: user._id, content: newQuestion });
             setNewQuestion("");
             setShowAddModal(false);
             fetchQuestions();
@@ -45,7 +45,7 @@ export default function CommunityHub() {
     const handlePostAnswer = async (questionId) => {
         if (!answerContent.trim()) return;
         try {
-            await axios.post(`${API_URL}/answer/${questionId}`, { userId: user.id, content: answerContent });
+            await axios.post(`${API_URL}/answer/${questionId}`, { userId: user._id, content: answerContent });
             setAnswerContent("");
             setAnsweringTo(null);
             fetchQuestions();
@@ -58,7 +58,7 @@ export default function CommunityHub() {
 
     const handleUpvote = async (answerId) => {
         try {
-            await axios.post(`${API_URL}/upvote/${answerId}`, { userId: user.id });
+            await axios.post(`${API_URL}/upvote/${answerId}`, { userId: user._id });
             fetchQuestions(); // Refresh to show new upvote count
         } catch (error) {
             console.error("Failed to upvote", error);
@@ -71,7 +71,7 @@ export default function CommunityHub() {
     const handleReply = async (answerId) => {
         if (!replyContent.trim()) return;
         try {
-            await axios.post(`${API_URL}/reply/${answerId}`, { userId: user.id, content: replyContent });
+            await axios.post(`${API_URL}/reply/${answerId}`, { userId: user._id, content: replyContent });
             setReplyContent("");
             setReplyingTo(null);
             fetchQuestions();
@@ -187,7 +187,7 @@ export default function CommunityHub() {
                                                         onClick={() => handleUpvote(ans._id)}
                                                         className="flex items-center gap-1 text-xs text-gray-400 hover:text-green-400 transition"
                                                     >
-                                                        <ThumbsUp size={14} className={ans.upvotedBy?.includes(user?.id) ? "text-green-500 fill-green-500" : ""} />
+                                                        <ThumbsUp size={14} className={ans.upvotedBy?.includes(user?._id) ? "text-green-500 fill-green-500" : ""} />
                                                         {ans.upvotedBy?.length || 0} Upvotes
                                                     </button>
                                                     <button
