@@ -41,7 +41,6 @@ export default function ChatPage() {
                     if (prev.some(m => m._id === data._id)) return prev;
                     return [...prev, data];
                 });
-                scrollToBottom();
             }
         });
 
@@ -58,9 +57,10 @@ export default function ChatPage() {
         }
     }, [selectedChat]);
 
-    const scrollToBottom = () => {
+    // Auto-scroll on new messages
+    useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+    }, [messages]);
 
     const fetchConversations = async () => {
         try {
@@ -96,7 +96,6 @@ export default function ChatPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setMessages(res.data);
-            scrollToBottom();
         } catch (err) {
             console.error(err);
         }
