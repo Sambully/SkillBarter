@@ -199,7 +199,8 @@ export default function ChatPage() {
 
         try {
             // Upload to backend
-            const res = await axios.post("http://localhost:5000/upload", formData, {
+            const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+            const res = await axios.post(`${backendUrl}/upload`, formData, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "multipart/form-data"
