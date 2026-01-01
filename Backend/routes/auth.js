@@ -108,4 +108,46 @@ router.get("/me", async (req, res) => {
     }
 });
 
+// Update Profile
+router.put("/update", async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(" ")[1];
+        if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+        const decoded = jwt.verify(token, "test");
+        const userId = decoded.id;
+
+        const { username, bio, skills, gender, phone } = req.body;
+
+        const user = await SkillUser.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Update basic fields
+        if (username) user.username = username;
+        if (bio) user.bio = bio;
+        if (gender) user.gender = gender;
+        if (phone) user.phone = phone;
+        if (skills) user.skills = skills;
+
+        // Re-generate embedding if skills or bio changed
+        // For simplicity, we regenerate if skills are provided
+        if (skills || bio) {
+            try {
+                const skillText = generateSkillText(user.skills || []);
+                const embedding = await embed(skillText);
+                if (embedding) user.embedding = embedding;
+            } catch (error) {
+                console.error("Embedding update failed:", error);
+            }
+        }
+
+        await user.save();
+
+        res.json(user);
+    } catch (error) {
+        console.error("Update failed", error);
+        res.status(500).json({ message: "Update failed" });
+    }
+});
+
 export default router;

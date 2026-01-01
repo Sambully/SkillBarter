@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const MessageSchema = new mongoose.Schema({
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'SkillUser', required: true },
     recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'SkillUser', required: true },
-    content: { type: String, required: true },
+    content: { type: String },
     fileUrl: { type: String },
     fileType: { type: String }, // 'image', 'video', 'raw'
     timestamp: { type: Date, default: Date.now }

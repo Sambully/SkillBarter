@@ -41,6 +41,23 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
     };
 
+    const updateUser = async (updatedData) => {
+        try {
+            // Use local API path since we added it to index.js, but let's call axios directly for consistency with fetchUser above 
+            // OR use the one from api/index.js if imported. 
+            // Since this file imports axios, let's stick to axios or better yet, call the endpoint.
+            // Wait, I should probably reuse the token from state.
+            const { data } = await axios.put("http://localhost:5000/auth/update", updatedData, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUser(data);
+            return data;
+        } catch (error) {
+            console.error("Update failed", error);
+            throw error;
+        }
+    };
+
     const logout = () => {
         localStorage.removeItem("token");
         setToken(null);
@@ -48,7 +65,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, token, login, logout, loading, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

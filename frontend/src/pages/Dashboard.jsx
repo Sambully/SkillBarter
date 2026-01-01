@@ -26,11 +26,13 @@ export default function Dashboard() {
         }
     }, []);
 
+    const [filterType, setFilterType] = useState('skill'); // 'skill' or 'name'
+
     const handleSearch = async () => {
         if (!query.trim()) return;
         setLoading(true);
         try {
-            const { data } = await fetchMatches(query);
+            const { data } = await fetchMatches(query, filterType);
             // Filter out self
             setResults(data.filter(u => u._id !== user.id));
         } catch (error) {
@@ -75,10 +77,27 @@ export default function Dashboard() {
                     <p className="text-gray-400 mb-8">
                         Use semantic search powered by Gemini. Type functionality (e.g., "I need help with Thermodynamics" or "Who can teach React?")
                     </p>
+
+                    {/* Search & Filter */}
                     <div className="flex gap-2 relative">
+                        {/* Filter Dropdown */}
+                        <div className="relative shrink-0">
+                            <select
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value)}
+                                className="h-full pl-4 pr-10 rounded-xl bg-gray-800 border border-gray-700 focus:border-blue-500 focus:outline-none text-white appearance-none cursor-pointer font-medium hover:bg-gray-700 transition"
+                            >
+                                <option value="skill">By Skill</option>
+                                <option value="name">By Name</option>
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+
                         <input
                             type="text"
-                            placeholder="Describe what you need help with..."
+                            placeholder={filterType === 'skill' ? "Describe what you need help with..." : "Search by username..."}
                             className="w-full p-4 rounded-xl bg-gray-800 border border-gray-700 focus:border-blue-500 focus:outline-none text-lg"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
@@ -100,9 +119,6 @@ export default function Dashboard() {
                             <div key={profile._id} className="bg-gray-900 border border-gray-800 p-6 rounded-xl hover:border-blue-500 transition duration-300 group">
                                 <div className="flex justify-between items-start mb-4">
                                     <h3 className="text-xl font-bold">{profile.username}</h3>
-                                    <span className="bg-gray-800 text-xs px-2 py-1 rounded border border-gray-700">
-                                        Match Score: {Math.round(profile.score * 100)}%
-                                    </span>
                                 </div>
 
                                 <div className="space-y-3 mb-6">

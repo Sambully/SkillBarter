@@ -47,11 +47,13 @@ io.on("connection", (socket) => {
     });
 
     socket.on("send_message", async (data) => {
-        const { sender, recipient, content } = data;
+        const { sender, recipient, content, fileUrl, fileType } = data;
 
         // Save to DB
         try {
-            const savedMessage = await Message.create({ sender, recipient, content });
+            // Fallback content to satisfy validation if needed, though schema is optional now
+            const finalContent = content || (fileUrl ? "File Attachment" : "Message");
+            const savedMessage = await Message.create({ sender, recipient, content: finalContent, fileUrl, fileType });
 
             // Emit to recipient's room
             io.to(recipient).emit("receive_message", savedMessage);

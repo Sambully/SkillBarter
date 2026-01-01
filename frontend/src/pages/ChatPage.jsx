@@ -17,6 +17,7 @@ export default function ChatPage() {
     const [newMessage, setNewMessage] = useState("");
     const messagesEndRef = useRef(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
     const [showCompleteModal, setShowCompleteModal] = useState(false);
     const [rating, setRating] = useState(5);
     const [showLinkInput, setShowLinkInput] = useState(false);
@@ -192,6 +193,7 @@ export default function ChatPage() {
         const file = e.target.files[0];
         if (!file) return;
 
+        setIsUploading(true);
         const formData = new FormData();
         formData.append("file", file);
 
@@ -210,18 +212,21 @@ export default function ChatPage() {
             const messageData = {
                 sender: user._id,
                 recipient: selectedChat.partner._id,
-                content: fileType.startsWith('image/') ? '📷 Sent an image' : '📎 Sent a file',
+                content: "", // Sent only as file
                 fileUrl,
                 fileType,
                 timestamp: new Date()
             };
 
             socket.emit("send_message", messageData);
-            setMessages(prev => [...prev, messageData]);
+            // setMessages(prev => [...prev, messageData]); // Removed optimistic update to prevent duplicates (socket event will handle it)
 
         } catch (err) {
             console.error("File upload failed:", err);
             alert(`Failed to upload file: ${err.response?.data?.message || err.message}`);
+        } finally {
+            setIsUploading(false);
+            e.target.value = null; // Reset input
         }
     };
 
@@ -359,7 +364,6 @@ export default function ChatPage() {
                         </div>
 
                         {/* Messages */}
-                // MESSAGE LIST
                         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent">
                             {!isLoading ? (
                                 messages.map((msg, index) => {
@@ -390,9 +394,16 @@ export default function ChatPage() {
                                                             />
                                                         </a>
                                                     ) : (
-                                                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-black/20 p-2 rounded-lg hover:bg-black/30 transition">
+                                                        <a
+                                                            href={msg.fileUrl.replace("/upload/", "/upload/fl_attachment/")}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-2 bg-black/20 p-2 rounded-lg hover:bg-black/30 transition"
+                                                        >
                                                             <File size={20} />
-                                                            <span className="underline truncate max-w-[150px]">Download File</span>
+                                                            <span className="underline truncate max-w-[150px]">
+                                                                {msg.fileUrl.endsWith('.pdf') ? 'Download PDF' : 'Download File'}
+                                                            </span>
                                                         </a>
                                                     )
                                                 ) : (
@@ -431,10 +442,19 @@ export default function ChatPage() {
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                 />
+                                {isUploading && (
+                                    <div className="absolute bottom-full mb-2 left-0 right-0 flex justify-center">
+                                        <div className="bg-gray-800 text-white text-xs px-3 py-1 rounded-full shadow-lg flex items-center gap-2 animate-pulse">
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                            Sending file...
+                                        </div>
+                                    </div>
+                                )}
                                 {newMessage.trim() && (
                                     <button
                                         type="submit"
-                                        className="text-blue-500 font-semibold hover:text-blue-400 transition pr-2 text-sm"
+                                        disabled={isUploading}
+                                        className="text-blue-500 font-semibold hover:text-blue-400 transition pr-2 text-sm disabled:opacity-50"
                                     >
                                         Send
                                     </button>
