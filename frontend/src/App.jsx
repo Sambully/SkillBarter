@@ -3,6 +3,7 @@ import SignUp from "./auth/SignUp";
 import SignIn from "./auth/SignIn";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import EditProfile from "./pages/EditProfile";
 import LandingPage from "./pages/LandingPage";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import ChatPage from "./pages/ChatPage";
@@ -39,6 +40,14 @@ export default function App() {
             } />
 
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+             <Route
+              path="/profile/edit"
+              element={
+                <ProtectedRoute>
+                  <EditProfile />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </Layout>
       </BrowserRouter>
