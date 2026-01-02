@@ -269,12 +269,12 @@ export default function ChatPage() {
                                 >
                                     <div className="relative">
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold text-white shadow-lg">
-                                            {chat.partner.username?.[0].toUpperCase() || "U"}
+                                            {chat.partner?.username?.[0]?.toUpperCase() || "U"}
                                         </div>
                                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></div>
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-white truncate">{chat.partner.username || "User"}</h3>
+                                        <h3 className="font-semibold text-white truncate">{chat.partner?.username || "User"}</h3>
                                         <p className="text-xs text-gray-400 truncate">Click to chat</p>
                                     </div>
                                 </div>
@@ -287,10 +287,10 @@ export default function ChatPage() {
                                 <div key={request._id} className="p-3 bg-gray-900/50 rounded-xl border border-gray-800 flex items-center justify-between hover:bg-gray-800 transition-colors group">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-500 to-orange-500 flex items-center justify-center font-bold text-black shadow-lg">
-                                            {request.sender.username[0].toUpperCase()}
+                                            {request.sender?.username?.[0]?.toUpperCase() || "U"}
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-white text-sm">{request.sender.username}</h3>
+                                            <h3 className="font-semibold text-white text-sm">{request.sender?.username || "Unknown"}</h3>
                                             <p className="text-xs text-gray-400">Sent a request</p>
                                         </div>
                                     </div>
@@ -318,10 +318,10 @@ export default function ChatPage() {
                         <div className="h-16 border-b border-gray-800 flex items-center justify-between px-6 bg-gray-900/30">
                             <div className="flex items-center gap-4">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center font-bold">
-                                    {selectedChat.partner.username?.[0].toUpperCase() || "U"}
+                                    {selectedChat.partner?.username?.[0]?.toUpperCase() || "U"}
                                 </div>
                                 <div>
-                                    <h2 className="font-bold">{selectedChat.partner.username || "User"}</h2>
+                                    <h2 className="font-bold">{selectedChat.partner?.username || "User"}</h2>
                                     <span className="flex items-center gap-1.5 text-xs text-green-400">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span> Online
                                     </span>
@@ -357,7 +357,7 @@ export default function ChatPage() {
                                         <div key={index} className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
                                             {!isMe && (
                                                 <div className={`w-8 h-8 rounded-full bg-gray-700 flex-shrink-0 flex items-center justify-center text-xs font-bold ${showAvatar ? 'opacity-100' : 'opacity-0'}`}>
-                                                    {selectedChat.partner.username?.[0].toUpperCase()}
+                                                    {selectedChat.partner?.username?.[0]?.toUpperCase()}
                                                 </div>
                                             )}
                                             <div
