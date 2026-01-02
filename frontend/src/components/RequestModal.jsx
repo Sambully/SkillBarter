@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Send } from 'lucide-react';
-import axios from 'axios';
+import API from '../api';
 import { useAuth } from '../context/AuthContext';
 
 export default function RequestModal({ isOpen, onClose, recipientId, onSuccess }) {
@@ -16,9 +16,8 @@ export default function RequestModal({ isOpen, onClose, recipientId, onSuccess }
         setLoading(true);
         try {
             const scheduledTime = new Date(`${date}T${time}`);
-            await axios.post('http://localhost:5000/chat/request',
-                { recipientId, note, scheduledTime },
-                { headers: { Authorization: `Bearer ${token}` } }
+            await API.post('/chat/request',
+                { recipientId, note, scheduledTime }
             );
             onSuccess();
             onClose();

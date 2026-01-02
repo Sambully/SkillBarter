@@ -1,5 +1,7 @@
+import API from "../api";
+
 const startSession = async () => {
-    const res = await axios.post("http://localhost:5000/sessions/start", {
+    const res = await API.post("/sessions/start", {
         learnerId: currentUserId,
         teacherId: selectedUserId
     });

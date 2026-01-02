@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import axios from "axios";
+import API from "../api";
 import { MessageSquare, ThumbsUp, Send, Plus, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_URL = "http://localhost:5000/community";
+
 
 export default function CommunityHub() {
     const { user } = useAuth();
@@ -19,7 +19,7 @@ export default function CommunityHub() {
 
     const fetchQuestions = async () => {
         try {
-            const { data } = await axios.get(`${API_URL}/all`);
+            const { data } = await API.get('/community/all');
             setQuestions(data);
         } catch (error) {
             console.error("Failed to fetch questions", error);
@@ -33,7 +33,7 @@ export default function CommunityHub() {
     const handlePostQuestion = async () => {
         if (!newQuestion.trim()) return;
         try {
-            await axios.post(`${API_URL}/create`, { userId: user._id, content: newQuestion });
+            await API.post('/community/create', { userId: user._id, content: newQuestion });
             setNewQuestion("");
             setShowAddModal(false);
             fetchQuestions();
@@ -45,7 +45,7 @@ export default function CommunityHub() {
     const handlePostAnswer = async (questionId) => {
         if (!answerContent.trim()) return;
         try {
-            await axios.post(`${API_URL}/answer/${questionId}`, { userId: user._id, content: answerContent });
+            await API.post(`/community/answer/${questionId}`, { userId: user._id, content: answerContent });
             setAnswerContent("");
             setAnsweringTo(null);
             fetchQuestions();
@@ -58,7 +58,7 @@ export default function CommunityHub() {
 
     const handleUpvote = async (answerId) => {
         try {
-            await axios.post(`${API_URL}/upvote/${answerId}`, { userId: user._id });
+            await API.post(`/community/upvote/${answerId}`, { userId: user._id });
             fetchQuestions(); // Refresh to show new upvote count
         } catch (error) {
             console.error("Failed to upvote", error);
@@ -71,7 +71,7 @@ export default function CommunityHub() {
     const handleReply = async (answerId) => {
         if (!replyContent.trim()) return;
         try {
-            await axios.post(`${API_URL}/reply/${answerId}`, { userId: user._id, content: replyContent });
+            await API.post(`/community/reply/${answerId}`, { userId: user._id, content: replyContent });
             setReplyContent("");
             setReplyingTo(null);
             fetchQuestions();

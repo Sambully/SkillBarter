@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
+import API from "../api";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 
@@ -19,9 +20,8 @@ export const AuthProvider = ({ children }) => {
                         logout();
                     } else {
                         // Fetch full user details
-                        const { data } = await axios.get("http://localhost:5000/auth/me", {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
+                        // Fetch full user details
+                        const { data } = await API.get("/auth/me");
                         setUser(data);
                     }
                 } catch (error) {
@@ -47,9 +47,7 @@ export const AuthProvider = ({ children }) => {
             // OR use the one from api/index.js if imported. 
             // Since this file imports axios, let's stick to axios or better yet, call the endpoint.
             // Wait, I should probably reuse the token from state.
-            const { data } = await axios.put("http://localhost:5000/auth/update", updatedData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const { data } = await API.put("/auth/update", updatedData);
             setUser(data);
             return data;
         } catch (error) {

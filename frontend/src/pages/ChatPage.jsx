@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Phone, Video, Paperclip, MoreVertical, Search, MessageSquare, UserPlus, Check, X, File } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import axios from 'axios';
+import API, { baseURL } from '../api';
 import io from 'socket.io-client';
 
-const socket = io("http://localhost:5000");
+const socket = io(baseURL);
 
 export default function ChatPage() {
     const { user, token } = useAuth();
@@ -65,9 +65,7 @@ export default function ChatPage() {
 
     const fetchConversations = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/chat/conversations', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await API.get('/chat/conversations');
             setConversations(res.data);
             // Sync selectedChat if it exists (to update activeSessionInitiator)
             if (selectedChat) {
@@ -82,9 +80,7 @@ export default function ChatPage() {
 
     const fetchRequests = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/chat/requests', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await API.get('/chat/requests');
             setRequests(res.data);
         } catch (err) {
             console.error(err);
@@ -93,9 +89,7 @@ export default function ChatPage() {
 
     const fetchMessages = async (partnerId) => {
         try {
-            const res = await axios.get(`http://localhost:5000/chat/${partnerId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await API.get(`/chat/${partnerId}`);
             setMessages(res.data);
         } catch (err) {
             console.error(err);
@@ -122,9 +116,7 @@ export default function ChatPage() {
 
     const handleAcceptRequest = async (requestId) => {
         try {
-            await axios.post(`http://localhost:5000/chat/request/${requestId}/accept`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await API.post(`/chat/request/${requestId}/accept`);
             fetchRequests();
             fetchConversations(); // refresh conversations
         } catch (err) {
@@ -134,9 +126,7 @@ export default function ChatPage() {
 
     const handleRejectRequest = async (requestId) => {
         try {
-            await axios.post(`http://localhost:5000/chat/request/${requestId}/reject`, {}, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await API.post(`/chat/request/${requestId}/reject`);
             fetchRequests();
         } catch (err) {
             console.error(err);
@@ -155,9 +145,8 @@ export default function ChatPage() {
         // Call backend to persist session start (for payment button visibility)
         if (selectedChat?.requestId) {
             try {
-                await axios.post('http://localhost:5000/chat/start-session',
-                    { requestId: selectedChat.requestId },
-                    { headers: { Authorization: `Bearer ${token}` } }
+                await API.post('/chat/start-session',
+                    { requestId: selectedChat.requestId }
                 );
                 // Refresh to get updated activeSessionInitiator status
                 fetchConversations();
@@ -199,13 +188,7 @@ export default function ChatPage() {
 
         try {
             // Upload to backend
-            const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-            const res = await axios.post(`${backendUrl}/upload`, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data"
-                }
-            });
+            const res = await API.post('/upload', formData);
 
             const { fileUrl, fileType } = res.data;
 
@@ -234,9 +217,8 @@ export default function ChatPage() {
     const handleCompleteSession = async () => {
         if (!selectedChat) return;
         try {
-            const res = await axios.post('http://localhost:5000/chat/complete-session',
-                { requestId: selectedChat.requestId, rating },
-                { headers: { Authorization: `Bearer ${token}` } }
+            const res = await API.post('/chat/complete-session',
+                { requestId: selectedChat.requestId, rating }
             );
             alert(`Session ended! ${res.data.message}`);
             setShowCompleteModal(false);

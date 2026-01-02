@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
-import { fetchChat } from "../api";
+import { fetchChat, baseURL } from "../api";
 
-const socket = io("http://localhost:5000");
+const socket = io(baseURL);
 
 export default function ChatInterface({ recipient, onClose }) {
     const { user } = useAuth();
