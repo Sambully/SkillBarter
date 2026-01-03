@@ -123,6 +123,4 @@ VITE_FIREBASE_PROJECT_ID=your_project_id
 3.  **Chat:** Click on a user to start a conversation.
 4.  **Barter:** Negotiate skill swaps in real-time.
 
-## 🤝 Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
